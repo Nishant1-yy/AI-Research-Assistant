@@ -1,3 +1,7 @@
+from utils.vector_store import (
+    create_faiss_index,
+    save_index
+)
 from utils.pdf_reader import extract_text_from_pdfs
 from utils.chunking import create_chunks
 from utils.embeddings import (
@@ -38,41 +42,62 @@ with st.sidebar:
 
     if st.button("📄 Process Documents"):
 
-      if uploaded_files:
+        if uploaded_files:
 
-          with st.spinner("Reading PDF documents..."):
+            with st.spinner("Reading PDF documents..."):
 
-              raw_text = extract_text_from_pdfs(uploaded_files)
-              chunks = create_chunks(raw_text)
-              model = load_embedding_model()
+                st.write("Step 1")
+                raw_text = extract_text_from_pdfs(uploaded_files)
 
-              embeddings = create_embeddings(
-                model,
-                chunks
-              )
-              st.write(f"Embedding Dimension: {len(embeddings[0])}")
+                st.write("Step 2")
+                chunks = create_chunks(raw_text)
 
-              st.write(f"Total Embeddings: {len(embeddings)}")
+                st.write("Step 3")
+                model = load_embedding_model()
 
-          st.success("PDFs processed successfully!")
+                st.write("Step 4")
+                embeddings = create_embeddings(
+                    model,
+                    chunks
+                )
 
-          st.subheader("Document Statistics")
+                st.write("Step 5")
+                index = create_faiss_index(
+                    embeddings
+                )
 
-          st.write(f"Total Characters: {len(raw_text)}")
+                st.write("Step 6")
+                save_index(index)
 
-          st.write(f"Total Chunks: {len(chunks)}")
+                st.write("Done")
+                st.write(
+                    f"Vectors Stored: {index.ntotal}"
+                )
 
-          st.markdown("---")
+                st.write(f"Embedding Dimension: {len(embeddings[0])}")
 
-          st.subheader("Chunk Preview")
+                st.write(f"Total Embeddings: {len(embeddings)}")
 
-          for index, chunk in enumerate(chunks):
+            st.success("PDFs processed successfully!")
 
-            with st.expander(f"Chunk {index + 1}"):
+            st.subheader("Document Statistics")
 
-                st.write(chunk)
+            st.write(f"Total Characters: {len(raw_text)}")
 
-                st.warning("Please upload at least one PDF.")
+            st.write(f"Total Chunks: {len(chunks)}")
+
+            st.markdown("---")
+
+            st.subheader("Chunk Preview")
+
+            for index, chunk in enumerate(chunks):
+
+                with st.expander(f"Chunk {index + 1}"):
+
+                    st.write(chunk)
+
+        else:
+            st.warning("Please upload at least one PDF.")
 
     st.markdown("---")
 
