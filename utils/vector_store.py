@@ -1,6 +1,7 @@
 import faiss
 import numpy as np
 import os
+import pickle
 
 os.makedirs("vector_store", exist_ok=True)
 
@@ -10,6 +11,36 @@ def save_index(index):
         index,
         "vector_store/faiss_index.index"
     )
+
+def save_chunks(chunks):
+    """
+    Saves chunks to disk.
+    """
+
+    with open(
+        "vector_store/chunks.pkl",
+        "wb"
+    ) as file:
+
+        pickle.dump(
+            chunks,
+            file
+        )
+
+
+def load_chunks():
+    """
+    Loads saved chunks.
+    """
+
+    with open(
+        "vector_store/chunks.pkl",
+        "rb"
+    ) as file:
+
+        chunks = pickle.load(file)
+
+    return chunks
 
 def load_index():
 

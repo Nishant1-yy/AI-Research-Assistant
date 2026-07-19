@@ -1,23 +1,20 @@
 from utils.vector_store import (
     create_faiss_index,
-    save_index
+    save_index,
+    load_index,
+    save_chunks,
+    load_chunks,
 )
 from utils.pdf_reader import extract_text_from_pdfs
 from utils.chunking import create_chunks
-from utils.embeddings import (
-    load_embedding_model,
-    create_embeddings
-)
+from utils.embeddings import load_embedding_model, create_embeddings
+from utils.retriever import retrieve_chunks
 import streamlit as st
 
 # ---------------------------
 # Page Configuration
 # ---------------------------
-st.set_page_config(
-    page_title="AI Research Assistant",
-    page_icon="📚",
-    layout="wide"
-)
+st.set_page_config(page_title="AI Research Assistant", page_icon="📚", layout="wide")
 
 # ---------------------------
 # Session State
@@ -35,9 +32,7 @@ with st.sidebar:
     st.markdown("---")
 
     uploaded_files = st.file_uploader(
-        "Upload PDF Files",
-        type=["pdf"],
-        accept_multiple_files=True
+        "Upload PDF Files", type=["pdf"], accept_multiple_files=True
     )
 
     if st.button("📄 Process Documents"):
@@ -56,23 +51,17 @@ with st.sidebar:
                 model = load_embedding_model()
 
                 st.write("Step 4")
-                embeddings = create_embeddings(
-                    model,
-                    chunks
-                )
+                embeddings = create_embeddings(model, chunks)
 
                 st.write("Step 5")
-                index = create_faiss_index(
-                    embeddings
-                )
+                index = create_faiss_index(embeddings)
 
                 st.write("Step 6")
                 save_index(index)
+                save_chunks(chunks)
 
                 st.write("Done")
-                st.write(
-                    f"Vectors Stored: {index.ntotal}"
-                )
+                st.write(f"Vectors Stored: {index.ntotal}")
 
                 st.write(f"Embedding Dimension: {len(embeddings[0])}")
 
@@ -90,9 +79,9 @@ with st.sidebar:
 
             st.subheader("Chunk Preview")
 
-            for index, chunk in enumerate(chunks):
+            for idx, chunk in enumerate(chunks):
 
-                with st.expander(f"Chunk {index + 1}"):
+                with st.expander(f"Chunk {idx + 1}"):
 
                     st.write(chunk)
 
@@ -127,27 +116,36 @@ question = st.chat_input("Ask a question about your documents...")
 
 if question:
 
-    st.session_state.messages.append(
-        {
-            "role": "user",
-            "content": question
-        }
-    )
+    st.session_state.messages.append({"role": "user", "content": question})
 
     with st.chat_message("user"):
         st.markdown(question)
 
     with st.chat_message("assistant"):
 
-        response = (
-            "RAG is not connected yet. We'll build that in the next phases."
-        )
+        try:
+            model = load_embedding_model()
+
+            index = load_index()
+
+            chunks = load_chunks()
+
+            retrieved = retrieve_chunks(question, model, index, chunks, top_k=3)
+
+            response = ""
+
+            for i, chunk in enumerate(retrieved):
+
+                response += f"### Retrieved Chunk {i+1}\n\n"
+
+                response += chunk
+
+                response += "\n\n------------------\n\n"
+
+        except Exception as e:
+
+            response = str(e)
 
         st.markdown(response)
 
-    st.session_state.messages.append(
-        {
-            "role": "assistant",
-            "content": response
-        }
-    )
+    st.session_state.messages.append({"role": "assistant", "content": response})
